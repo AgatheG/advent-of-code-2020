@@ -1,14 +1,14 @@
-import sys
+import sys, json
 
 with open("input.txt", "r") as file:
     lines = file.read().split("\n\n")
 
 def get_passport_content(line):
     if sys.version_info < (3,0):
-        line = line.replace(":", "':'").replace(" ", "', '").replace("\n", "', '")
+        line = line.replace(':', '":"').replace(' ', '", "').replace('\n', '", "')
     else:
-        line = line.translate(line.maketrans({":": "':'", " ": "', '", "\n": "', '"}))
-    return eval("{'"+line+"'}")
+        line = line.translate(line.maketrans({":": '":"', " ": '", "', "\n": '", "'}))
+    return eval('{"'+line+'"}')
 
 #PART 1
 VALID_FIELDS = {"byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"}
