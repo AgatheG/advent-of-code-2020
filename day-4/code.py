@@ -24,11 +24,6 @@ print("PART 1 - Number of valid passports : " + str(passports))
 
 #PART 2
 import re
-check_birth_year = lambda passport_content: 1920 <= int(passport_content.get("byr", 0)) <= 2002
-
-check_issue_year = lambda passport_content: 2010 <= int(passport_content.get("iyr", 0)) <= 2020
-
-check_exp_year = lambda passport_content: 2020 <= int(passport_content.get("eyr", 0)) <= 2030
 
 def check_height(passport_content):
     height = passport_content.get("hgt", "")
@@ -38,21 +33,16 @@ def check_height(passport_content):
         return 59 <= int(height[:-2]) <= 76
     return False
 
-check_haircolor = lambda passport_content: re.search("^#[a-f0-9]{6}$", passport_content.get("hcl", ""))
-
-check_id = lambda passport_content: re.search("^[0-9]{9}$", passport_content.get("pid", ""))
-
 EYE_COLORS = {"amb", "blu", "brn", "gry", "grn", "hzl", "oth"}
-check_eye_color = lambda passport_content : passport_content.get("ecl", "") in EYE_COLORS
 
 FIELD_CHECKS = {
-    "byr": check_birth_year,
-    "iyr": check_issue_year,
-    "eyr": check_exp_year,
+    "byr": lambda passport_content: 1920 <= int(passport_content.get("byr", 0)) <= 2002,
+    "iyr": lambda passport_content: 2010 <= int(passport_content.get("iyr", 0)) <= 2020,
+    "eyr": lambda passport_content: 2020 <= int(passport_content.get("eyr", 0)) <= 2030,
     "hgt": check_height,
-    "hcl": check_haircolor,
-    "pid": check_id,
-    "ecl": check_eye_color
+    "hcl": lambda passport_content: re.search("^#[a-f0-9]{6}$", passport_content.get("hcl", "")),
+    "pid": lambda passport_content: re.search("^[0-9]{9}$", passport_content.get("pid", "")),
+    "ecl": lambda passport_content : passport_content.get("ecl", "") in EYE_COLORS
 }
 
 passports = 0
