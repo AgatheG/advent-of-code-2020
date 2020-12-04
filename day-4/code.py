@@ -1,21 +1,18 @@
+import sys
+
 with open("input.txt", "r") as file:
     lines = file.read().split("\n\n")
 
-VALID_FIELDS = {
-    "byr",
-    "iyr",
-    "eyr",
-    "hgt",
-    "hcl",
-    "ecl",
-    "pid"
-}
-
 def get_passport_content(line):
-    line = line.translate(line.maketrans({":": "':'", " ": "', '", "\n": "', '"}))
+    if sys.version_info < (3,0):
+        line = line.replace(":", "':'").replace(" ", "', '").replace("\n", "', '")
+    else:
+        line = line.translate(line.maketrans({":": "':'", " ": "', '", "\n": "', '"}))
     return eval("{'"+line+"'}")
 
 #PART 1
+VALID_FIELDS = {"byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"}
+
 passports = 0
 for line in lines:
     passport_content = get_passport_content(line)

@@ -1,8 +1,9 @@
+from functools import reduce # for Py3
+
 with open("input.txt", "r") as file:
     lines = file.read().split("\n")
 
 TREE_PATTERN = "#"
-
 def tree_check(line, slope):
     return line[slope%len(line)] == TREE_PATTERN
 
@@ -30,7 +31,7 @@ for idx, line in enumerate(lines):
         encountered_trees[5] += 1
     if tree_check(line, 7*idx):
         encountered_trees[7] += 1
-    if idx%2==0 and tree_check(line, idx/2):
+    if idx%2==0 and tree_check(line, int(idx/2)):
         encountered_trees[.5] += 1
 
 print("PART 2 - Multiplying the number of trees encountered for these five differents slopes yields : " 
