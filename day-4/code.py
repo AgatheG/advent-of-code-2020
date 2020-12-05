@@ -8,7 +8,7 @@ def get_passport_content(line):
         line = line.replace(':', '":"').replace(' ', '", "').replace('\n', '", "')
     else:
         line = line.translate(line.maketrans({":": '":"', " ": '", "', "\n": '", "'}))
-    return eval('{"'+line+'"}')
+    return json.loads('{"'+line+'"}')
 
 #PART 1
 VALID_FIELDS = {"byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"}
