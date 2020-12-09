@@ -34,6 +34,7 @@ class Pointer(object):
     def reset(self):
         self.visited = self.memory
         self.acc.reset()
+        self.clear_memory()
 
     def clear_memory(self):
         self.memory = None
@@ -93,17 +94,34 @@ class CorruptedInstructionReader(InstructionReader):
         "nop": "jmp"
     }
 
-    def instruction_can_be_corrupted(self, code, argument):
-        return code in self.CORRUPTIBLE_OP_CODES and argument != 0
+    class FIX_ATTEMPT:
+        NoneOngoing = 0
+        Ongoing = 1
+        Failed = 2
+        
+    def __init__(self, instructions):
+        self.fix_attempt = self.FIX_ATTEMPT.NoneOngoing
+        super(CorruptedInstructionReader, self).__init__(instructions)
 
-    def no_repair_attempt_ungoing(self):
-        return self.pointer.memory is None
+    def reset(self):
+        self.fix_attempt = self.FIX_ATTEMPT.Failed
+        super(CorruptedInstructionReader, self).reset()
+
+    def can_attempt_instruction_fix(self, code, argument):
+        corruptible_instruction = code in self.CORRUPTIBLE_OP_CODES and argument != 0
+        return corruptible_instruction and self.fix_attempt == self.FIX_ATTEMPT.NoneOngoing
+
+    def start_fix_attempt(self):
+        self.pointer.store()
+        self.accumulator.store()
+        self.fix_attempt = self.FIX_ATTEMPT.Ongoing
 
     def get_operation(self, code, argument):
-        if self.instruction_can_be_corrupted(code, argument) and self.no_repair_attempt_ungoing():
-            self.pointer.store()
-            self.accumulator.store()
+        if self.can_attempt_instruction_fix(code, argument):
+            self.start_fix_attempt()
             code = self.CORRUPTIBLE_OP_CODES[code]
+        if self.fix_attempt == self.FIX_ATTEMPT.Failed:
+            self.fix_attempt = self.FIX_ATTEMPT.NoneOngoing
         super(CorruptedInstructionReader, self).get_operation(code, argument)
 
 reader = CorruptedInstructionReader(instructions)
@@ -111,7 +129,5 @@ while not reader.is_done():
     reader.read_instruction()
     if reader.is_looping():
         reader.reset()
-        reader.read_instruction()
-        reader.pointer.clear_memory()
 
 print("PART 2 - The accumulator value is : " + str(reader.accumulator.value))
