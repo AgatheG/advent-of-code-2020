@@ -1,61 +1,117 @@
 with open("input.txt", "r") as file:
     instructions = file.read().split("\n")
 
-accumulator = [0]
+class Accumulator(object):
+    def __init__(self):
+        self.value = 0
+        self.memory = 0
 
-def accumulator_operation(argument, idx):
-    accumulator[0] += argument
-    return idx+1
+    def reset(self):
+        self.value = self.memory
+        self.memory = 0
 
-OPERATIONS = {
-    "acc": accumulator_operation,
-    "jmp": lambda argument, idx: argument+idx,
-    "nop": lambda argument, idx: idx+1
-}
+    def add(self, offset):
+        self.value += offset
+
+    def store(self):
+        self.memory = self.value
+
+class Pointer(object):
+    def __init__(self):
+        self.acc = Accumulator()
+        self.visited = set()
+        self.memory = None
+        super(Pointer, self).__init__()
+
+    @property
+    def value(self):
+        return self.acc.value
+
+    def add(self, offset):
+        self.visited.add(self.value)
+        self.acc.add(offset)
+
+    def reset(self):
+        self.visited = self.memory
+        self.acc.reset()
+
+    def clear_memory(self):
+        self.memory = None
+
+    def store(self):
+        self.acc.store()
+        self.memory = set(self.visited)
+
+class InstructionReader(object):
+    class OPERATIONS:
+        Accumulator = "acc"
+        Jump = "jmp"
+        NoOperation = "nop"
+
+    def __init__(self, instructions):
+        self.idx = 0
+        self.instructions = instructions
+        self.pointer = Pointer()
+        self.accumulator = Accumulator()
+
+    def get_operation(self, code, argument):
+        if code == self.OPERATIONS.Accumulator:
+            self.accumulator.add(argument)
+            self.pointer.add(1)
+        if code == self.OPERATIONS.Jump:
+            self.pointer.add(argument)
+        if code == self.OPERATIONS.NoOperation:
+            self.pointer.add(1)
+
+    def reset(self):
+        self.accumulator.reset()
+        self.pointer.reset()
+
+    def read_instruction(self):
+        code, argument = self.instructions[self.pointer.value].split(" ")
+        self.get_operation(code, int(argument))
+
+    def is_looping(self):
+        return self.pointer.value in self.pointer.visited
+
+    def is_done(self):
+        return self.pointer.value >= len(self.instructions)
+
+reader = InstructionReader(instructions)
 
 # PART 1
+while not reader.is_looping():
+    reader.read_instruction()
 
-instruction_idx, visited_ids = 0, set()
-while instruction_idx not in visited_ids:
-    visited_ids.add(instruction_idx)
-    operation, argument = instructions[instruction_idx].split(" ")
-    prev = instruction_idx
-    instruction_idx = OPERATIONS[operation](int(argument), instruction_idx)
-print(accumulator)
+print("PART 1 - The accumulator value is : " + str(reader.accumulator.value))
 
 # PART 2
-CORRUPTIBLE_OPS = ["jmp", "nop"]
-go_back = [0]
-accumulator = [0]
-d = {}
 
-def is_potentially_corrupted(operation, argument, idx):
-    return idx not in tried_ids and idx in new_visited_ids and go_back[0] == -1 and argument != 0 and operation in CORRUPTIBLE_OPS
+class CorruptedInstructionReader(InstructionReader):
+    CORRUPTIBLE_OP_CODES = {
+        "jmp": "nop",
+        "nop": "jmp"
+    }
 
-def changed_operation(operation, argument, idx):
-    if is_potentially_corrupted(operation, argument, idx):
-        go_back[0] = idx
-        tried_ids.add(idx)
-        changed_operation = "nop" if operation == "jmp" else "jmp"
-        return OPERATIONS[changed_operation](argument, idx) 
-    return OPERATIONS[operation](argument, idx)
+    def instruction_can_be_corrupted(self, code, argument):
+        return code in self.CORRUPTIBLE_OP_CODES and argument != 0
 
-tried_ids = set()
-instruction_idx, new_visited_ids = 0, set()
-while instruction_idx < len(instructions):
-    if instruction_idx not in d and instruction_idx in visited_ids:
-        d[instruction_idx] = {
-            "set": set(new_visited_ids),
-            "acc": accumulator[0]
-        }
-    new_visited_ids.add(instruction_idx)
-    operation, argument = instructions[instruction_idx].split(" ")
-    instruction_idx = changed_operation(operation, int(argument), instruction_idx)
+    def no_repair_attempt_ungoing(self):
+        return self.pointer.memory is None
 
-    if instruction_idx in new_visited_ids:
-        instruction_idx = go_back[0]
-        new_visited_ids = set(d[instruction_idx]["set"])
-        accumulator = [d[instruction_idx]["acc"]]
-        go_back[0] = -1
+    def get_operation(self, code, argument):
+        if self.instruction_can_be_corrupted(code, argument) and self.no_repair_attempt_ungoing():
+            self.pointer.store()
+            self.accumulator.store()
+            code = self.CORRUPTIBLE_OP_CODES[code]
+        super(CorruptedInstructionReader, self).get_operation(code, argument)
 
-print(accumulator)
+reader = CorruptedInstructionReader(instructions)
+while not reader.is_done():
+    reader.read_instruction()
+    if reader.is_looping():
+        reader.reset()
+        reader.read_instruction()
+        reader.pointer.clear_memory()
+
+print("PART 2 - The accumulator value is : " + str(reader.accumulator.value))
